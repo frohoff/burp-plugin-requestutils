@@ -8,7 +8,6 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -21,16 +20,18 @@ import javax.swing.JMenuItem;
 
 import org.frohoff.burp.plugin.requestutils.command.CurlRequestCommandConverter;
 import org.frohoff.burp.plugin.requestutils.command.RequestCommandConverter;
+import org.frohoff.burp.plugin.requestutils.reduce.DiffResponseUtils;
 
 import burp.IBurpExtender;
 import burp.IBurpExtenderCallbacks;
 import burp.IContextMenuFactory;
 import burp.IContextMenuInvocation;
 import burp.IHttpRequestResponse;
+import burp.IHttpService;
 import burp.IRequestInfo;
 
 public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFactory {
-	private static final Set<Byte> CONTEXTS = new HashSet<Byte>(Arrays.asList(
+	private static final Set<Byte> COPY_AS_CONTEXTS = new HashSet<Byte>(Arrays.asList(
 			CONTEXT_MESSAGE_EDITOR_REQUEST, CONTEXT_MESSAGE_VIEWER_REQUEST, CONTEXT_PROXY_HISTORY)); 
 	
 	private IBurpExtenderCallbacks callbacks = null;
@@ -77,16 +78,27 @@ public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFact
 
 	@Override
 	public List<JMenuItem> createMenuItems(final IContextMenuInvocation invocation) {
-		if (CONTEXTS.contains(invocation.getInvocationContext())) {
+		List<JMenuItem> items = new LinkedList<JMenuItem>(); 
+		if (COPY_AS_CONTEXTS.contains(invocation.getInvocationContext())) {
 			final RequestCommandConverter[] converters = getConverters();
 			final IHttpRequestResponse[] https = invocation.getSelectedMessages();
-			return Arrays.asList((JMenuItem) new JMenu("Copy as Command"){{
+			items.add(new JMenu("Copy as Command"){{
 					for (RequestCommandConverter converter : converters) {
 						add(new JMenuItem(new ConvertRequestAction(https, converter))); 
 					}
 			}});
-		} else {
-			return new ArrayList<JMenuItem>();
+		} 
+		if (invocation.getInvocationContext() == IContextMenuInvocation.CONTEXT_MESSAGE_EDITOR_REQUEST) {
+			items.add(new JMenuItem(new AbstractAction("Reduce Request") {				
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					System.out.println("reducing request");
+					IHttpService service = invocation.getSelectedMessages()[0].getHttpService();
+					byte[] req = DiffResponseUtils.getReducedRequest(callbacks, service, invocation.getSelectedMessages()[0].getRequest());
+					callbacks.sendToRepeater(service.getHost(), service.getPort(), service.getProtocol().equalsIgnoreCase("https"), req, "reduced request");
+				}
+			}));
 		}
+		return items;
 	}
 }
