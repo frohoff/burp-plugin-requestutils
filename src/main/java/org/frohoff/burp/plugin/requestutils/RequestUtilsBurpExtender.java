@@ -51,7 +51,7 @@ public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFact
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			List<String> commands = convertRequests(converter, https);
-			StringSelection ss = new StringSelection(join(commands, "\n"));
+			StringSelection ss = new StringSelection(StringUtils.join(commands, "\n"));
 			clipboard.setContents(ss, ss);			
 		}
 		
@@ -88,17 +88,5 @@ public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFact
 		} else {
 			return new ArrayList<JMenuItem>();
 		}
-	}
-	
-	public static String join(Iterable<? extends Object> iterable, String del) {
-		StringBuffer sb = new StringBuffer();
-		boolean first = true;
-		for (Object o : iterable) {
-			if (!first)
-				sb.append(del);
-			sb.append(o.toString());
-			first = false;
-		}
-		return sb.toString();
 	}
 }
