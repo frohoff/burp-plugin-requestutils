@@ -1,7 +1,7 @@
 package burp;
 
-import org.frohoff.burp.plugin.curl.CurlBurpExtender;
+import org.frohoff.burp.plugin.requestutils.RequestUtilsBurpExtender;
 
-public class BurpExtender extends CurlBurpExtender {
+public class BurpExtender extends RequestUtilsBurpExtender {
 
 }
