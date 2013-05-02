@@ -8,7 +8,6 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -35,7 +34,6 @@ public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFact
 			CONTEXT_MESSAGE_EDITOR_REQUEST, CONTEXT_MESSAGE_VIEWER_REQUEST, CONTEXT_PROXY_HISTORY)); 
 	
 	private IBurpExtenderCallbacks callbacks = null;
-	private PrintWriter out = null;
 	
 	private Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 		
@@ -53,7 +51,6 @@ public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFact
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			List<String> commands = convertRequests(converter, https);
-			out.println("commands: " + commands);
 			StringSelection ss = new StringSelection(join(commands, "\n"));
 			clipboard.setContents(ss, ss);			
 		}
@@ -75,13 +72,11 @@ public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFact
 	@Override
 	public void registerExtenderCallbacks(IBurpExtenderCallbacks callbacks) {
 		this.callbacks = callbacks;
-		out = new PrintWriter(this.callbacks.getStdout());
 		callbacks.registerContextMenuFactory(this);
 	}
 
 	@Override
 	public List<JMenuItem> createMenuItems(final IContextMenuInvocation invocation) {
-		out.println("creating menu items");
 		if (CONTEXTS.contains(invocation.getInvocationContext())) {
 			final RequestCommandConverter[] converters = getConverters();
 			final IHttpRequestResponse[] https = invocation.getSelectedMessages();
