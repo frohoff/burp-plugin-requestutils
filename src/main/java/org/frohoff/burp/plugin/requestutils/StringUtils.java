@@ -17,4 +17,28 @@ public class StringUtils {
 		}
 		return sb.toString();
 	}
+
+	public static int firstIndexOf(String string, String chars) {
+		for (int i = 0; i < string.length(); i++) {
+			for (int j = 0; j < chars.length(); j++) {
+				if (string.charAt(i) == chars.charAt(j)) {
+					return i;
+				}
+			}
+				
+		}
+		return -1;
+	}
+
+	public static int lastIndexOf(String string, String chars) {
+		for (int i = string.length() - 1; i >= 0; i--) {
+			for (int j = 0; j < chars.length(); j++) {
+				if (string.charAt(i) == chars.charAt(j)) {
+					return i;
+				}
+			}
+				
+		}
+		return -1;	
+	}
 }
