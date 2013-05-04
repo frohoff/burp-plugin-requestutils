@@ -87,8 +87,6 @@ public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFact
 						add(new JMenuItem(new ConvertRequestAction(https, converter))); 
 					}
 			}});
-		} 
-		if (invocation.getInvocationContext() == IContextMenuInvocation.CONTEXT_MESSAGE_EDITOR_REQUEST) {
 			items.add(new JMenuItem(new AbstractAction("Reduce Request") {				
 				@Override
 				public void actionPerformed(ActionEvent e) {
@@ -97,8 +95,8 @@ public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFact
 					byte[] req = DiffResponseUtils.getReducedRequest(callbacks, service, invocation.getSelectedMessages()[0].getRequest());
 					callbacks.sendToRepeater(service.getHost(), service.getPort(), service.getProtocol().equalsIgnoreCase("https"), req, "reduced request");
 				}
-			}));
-		}
+			}));			
+		} 
 		return items;
 	}
 }
