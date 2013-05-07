@@ -4,20 +4,14 @@ import static burp.IContextMenuInvocation.CONTEXT_MESSAGE_EDITOR_REQUEST;
 import static burp.IContextMenuInvocation.CONTEXT_MESSAGE_VIEWER_REQUEST;
 import static burp.IContextMenuInvocation.CONTEXT_PROXY_HISTORY;
 
-import java.awt.Toolkit;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.StringSelection;
-import java.awt.event.ActionEvent;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import javax.swing.AbstractAction;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
-import javax.swing.SwingUtilities;
 
 import org.frohoff.burp.plugin.requestutils.command.CurlRequestCommandConverter;
 import org.frohoff.burp.plugin.requestutils.command.RequestCommandConverter;
@@ -28,8 +22,6 @@ import burp.IBurpExtenderCallbacks;
 import burp.IContextMenuFactory;
 import burp.IContextMenuInvocation;
 import burp.IHttpRequestResponse;
-import burp.IHttpService;
-import burp.IRequestInfo;
 
 public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFactory {
 	private static final Set<Byte> COPY_AS_CONTEXTS = new HashSet<Byte>(Arrays.asList(
@@ -37,36 +29,7 @@ public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFact
 	
 	private IBurpExtenderCallbacks callbacks = null;
 	
-	private Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 			
-	public class ConvertRequestAction extends AbstractAction {
-		private static final long serialVersionUID = -1305935558053936713L;
-		private final IHttpRequestResponse[] https;
-		private final RequestCommandConverter converter;
-		
-		public ConvertRequestAction(IHttpRequestResponse[] https, RequestCommandConverter converter) {
-			super(converter.getName());
-			this.https = https;
-			this.converter = converter;
-		}
-
-		@Override
-		public void actionPerformed(ActionEvent e) {
-			List<String> commands = convertRequests(converter, https);
-			StringSelection ss = new StringSelection(StringUtils.join(commands, "\n"));
-			clipboard.setContents(ss, ss);			
-		}
-		
-		private List<String> convertRequests(RequestCommandConverter converter, IHttpRequestResponse[] messages) {
-			List<String> commands = new LinkedList<String>();
-			for (IHttpRequestResponse message : messages) {
-				IRequestInfo req = callbacks.getHelpers().analyzeRequest(message);				
-				commands.add(converter.toCommand(message, req));
-			}
-			return commands;
-		}		
-	}
-	
 	protected RequestCommandConverter[] getConverters() {
 		return new RequestCommandConverter[] { new CurlRequestCommandConverter() };
 	}
@@ -86,23 +49,11 @@ public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFact
 			final IHttpRequestResponse[] https = invocation.getSelectedMessages();
 			items.add(new JMenu("Copy as Command"){{
 					for (RequestCommandConverter converter : converters) {
-						add(new JMenuItem(new ConvertRequestAction(https, converter))); 
+						add(new JMenuItem(new ConvertRequestAction(callbacks, https, converter))); 
 					}
 			}});
-			items.add(new JMenuItem(new AbstractAction("Reduce Request") {				
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					SwingUtilities.invokeLater(new Runnable(){
-						@Override
-						public void run() {
-							System.out.println("reducing request");
-							IHttpService service = invocation.getSelectedMessages()[0].getHttpService();
-							byte[] req = DiffResponseUtils.getReducedRequest(callbacks, invocation.getSelectedMessages()[0]);
-							callbacks.sendToRepeater(service.getHost(), service.getPort(), service.getProtocol().equalsIgnoreCase("https"), req, "reduced request");
-						}						
-					});
-				}
-			}));			
+			//TODO: handle/prevent multiple selected requests
+			items.add(new JMenuItem(new DiffResponseUtils("Reduce Request", callbacks, invocation.getSelectedMessages()[0])));			
 		} 
 		return items;
 	}
