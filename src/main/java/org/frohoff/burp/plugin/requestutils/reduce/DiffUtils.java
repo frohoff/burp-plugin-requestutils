@@ -86,7 +86,6 @@ public class DiffUtils {
 				return true;
 			}			
 		} else if (oppositeDiffOps(a,b) && oppositeDiffOps(b,c)) { // C1 C2 C1
-			System.out.println("C1 C2 C1:\na:" + a + "\nb:" + b);
 			a.text = a.text + c.text; // append c onto a
 			diffs.remove(i + 2); // remove c
 			return true;

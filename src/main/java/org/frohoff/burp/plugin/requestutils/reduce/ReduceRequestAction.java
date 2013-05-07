@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.AbstractAction;
@@ -58,14 +59,8 @@ public class ReduceRequestAction extends AbstractAction {
 		IRequestInfo reqInfo = callbacks.getHelpers().analyzeRequest(reqBytes);		
 		List<String> headers = reqInfo.getHeaders();
 		Pattern tmplPattern = DiffUtils.diffTemplateToPattern(diffTemplate);
-		if (reqInfo.getContentType() == IRequestInfo.CONTENT_TYPE_NONE 
-				|| reqInfo.getContentType() == IRequestInfo.CONTENT_TYPE_URL_ENCODED) {
-			byte[] body = Arrays.copyOfRange(reqBytes, reqInfo.getBodyOffset(), reqBytes.length);
-			String[] params = new String(body).split("&");
-			for (String param : params) {
-				reqBytes = tryStrippedRequest(tmplPattern, service, reqBytes, param, "&");	
-			}
-		}		
+		byte[] body = Arrays.copyOfRange(reqBytes, reqInfo.getBodyOffset(), reqBytes.length);
+		String multipartBoundary = null;
 		for (String header : headers) {
 			if (header.startsWith(reqInfo.getMethod())) { // METHOD/PATH line
 				String[] pieces = header.split(" ");
@@ -86,19 +81,34 @@ public class ReduceRequestAction extends AbstractAction {
 					}					
 				}
 			} else {
+				if (reqInfo.getContentType() == IRequestInfo.CONTENT_TYPE_MULTIPART && header.startsWith("Content-Type: ")) {
+					Pattern pattern = Pattern.compile("Content-Type:\\s*multipart/[^;\\s]+\\s*;\\s*boundary\\s*=\\s*([^\n]+)\r\n");
+					Matcher m = pattern.matcher(new String(reqBytes));
+					multipartBoundary = m.group(1);					
+				}
 				reqBytes = tryStrippedRequest(tmplPattern, service, reqBytes, header, "\r\n");
 			}
 		}
+		if (reqInfo.getContentType() == IRequestInfo.CONTENT_TYPE_NONE 
+				|| reqInfo.getContentType() == IRequestInfo.CONTENT_TYPE_URL_ENCODED) {			
+			String[] params = new String(body).split("&");
+			for (String param : params) {
+				reqBytes = tryStrippedRequest(tmplPattern, service, reqBytes, param, "&");	
+			}
+		} else if (reqInfo.getContentType() == IRequestInfo.CONTENT_TYPE_MULTIPART && multipartBoundary != null) {
+			//TODO
+			//String[] params = new String(body).split(Pattern.quote(multipartBoundary));
+		}		
 		return reqBytes;
 	}
 
 	protected byte[] tryStrippedRequest(Pattern templPattern, IHttpService service, byte[] reqBytes
 										, String content, String delimRegex) {
-		System.out.println("trying to remove: " + content);
 		String reqStr = new String(reqBytes);
 		String newReqStr = reqStr.replaceAll(Pattern.quote(content) + "(" + delimRegex + ")?", ""); //strip header
 		byte[] newReq = newReqStr.getBytes(); 
 		IHttpRequestResponse newRes = callbacks.makeHttpRequest(service, newReq);
+		// TODO: handle cases where target content is echoed in response (possibly encoded)
 		if (newRes.getResponse() != null && templPattern.matcher(new String(newRes.getResponse())).find()) {
 			reqBytes = newReq;					
 		}		
