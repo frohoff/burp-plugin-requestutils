@@ -2,7 +2,6 @@ package org.frohoff.burp.plugin.requestutils.reduce;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.regex.Pattern;
 
 import name.fraser.neil.plaintext.diff_match_patch;
@@ -95,40 +94,6 @@ public class DiffUtils {
 		diff = reduceDiffs(diff);
 		return diff;		
 	}
-
-	public static void compareDiffs(List<Diff> template, List<Diff> newDiffs) {
-		if (newDiffs.size() == template.size())	{
-			for (int i = 0; i < template.size(); i++) {
-				if (template.get(i).equals(newDiffs.get(i))) {} // EQUAL cases
-				else if (template.get(i).operation != Operation.EQUAL 
-						&& newDiffs.get(i).operation != Operation.EQUAL) {}
-				else
-					throw new RuntimeException("can't find stable diff template");
-			}
-		} else {
-			throw new RuntimeException("can't find stable diff template");	
-		}		
-	}
-	
-	public static boolean diffCompatable(List<Diff> template, List<Diff> diffs) {
-		ListIterator<Diff> tempIter = template.listIterator();
-		ListIterator<Diff> diffsIter = diffs.listIterator();
-		
-		while (tempIter.hasNext() && diffsIter.hasNext()) {
-			Diff tempDiff = tempIter.next();
-			Diff diff = diffsIter.next();
-			
-			if (tempDiff.equals(diff)) {
-				continue;
-			} else if (tempDiff.operation != Operation.EQUAL && diff.operation == Operation.EQUAL) {
-				
-			} else { // both EQUAL but non-matching text or EQUAL tempDiff with non-EQUAL diff
-				return false;
-			}
-		}
-		return true;
-		
-	}	
 	
 	public static Pattern diffTemplateToPattern(List<Diff> diffs) {
 		Iterator<Diff> i = diffs.iterator();
@@ -138,9 +103,9 @@ public class DiffUtils {
 			if (diff.operation == Operation.EQUAL) {
 				sb.append(Pattern.quote(diff.text));
 			} else {
-				sb.append(".*");
+				sb.append("\\S*");
 			}
 		}
-		return Pattern.compile(sb.toString().replaceAll("(\\.\\*)+", ".*"));
+		return Pattern.compile(sb.toString().replaceAll("(\\\\S\\*)+", "\\\\S*"));
 	}
 }
