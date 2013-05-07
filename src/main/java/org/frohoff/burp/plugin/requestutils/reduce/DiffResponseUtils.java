@@ -12,35 +12,39 @@ import burp.IHttpService;
 import burp.IRequestInfo;
 
 public class DiffResponseUtils {	
-	public static byte[] getReducedRequest(IBurpExtenderCallbacks callbacks, IHttpService service, byte[] req) {		
-		List<Diff> template = getStableResponseDiffTemplate(callbacks, service, req);
-		IHttpRequestResponse res = callbacks.makeHttpRequest(service, req); // control
-		IRequestInfo reqInfo = callbacks.getHelpers().analyzeRequest(req);		
+	public static byte[] getReducedRequest(IBurpExtenderCallbacks callbacks, IHttpRequestResponse req) {		
+		List<Diff> template = getStableResponseDiffTemplate(callbacks, req);
+		IHttpService service = req.getHttpService();
+		byte[] reqBytes = req.getRequest();
+		IHttpRequestResponse res = callbacks.makeHttpRequest(service, reqBytes); // control
+		IRequestInfo reqInfo = callbacks.getHelpers().analyzeRequest(reqBytes);		
 		List<String> headers = reqInfo.getHeaders();
 		for (String header : headers) {
 			System.out.println("removing: " + header);
 			try {
-				String reqStr = new String(req);
+				String reqStr = new String(reqBytes);
 				String newReqStr = reqStr.replaceAll(Pattern.quote(header) + "\r?\n", "");
 				byte[] newReq = newReqStr.getBytes(); //strip header
 				IHttpRequestResponse newRes = callbacks.makeHttpRequest(service, newReq);
 				List<Diff> newDiff = diff(new String(res.getResponse()), new String(newRes.getResponse()));
 				//System.out.println(newDiff);
 				compareDiffs(newDiff, template);
-				System.out.println(new String(req));
-				req = newReq;
+				System.out.println(new String(reqBytes));
+				reqBytes = newReq;
 			} catch (Exception e) {
 				System.out.println(e);
 			}			
 		}
 		
-		return req;
+		return reqBytes;
 	}
 
-	public static List<Diff> getStableResponseDiffTemplate(IBurpExtenderCallbacks callbacks, IHttpService service, byte[] req) {
-		IHttpRequestResponse res1 = callbacks.makeHttpRequest(service, req);
+	public static List<Diff> getStableResponseDiffTemplate(IBurpExtenderCallbacks callbacks, IHttpRequestResponse req) {
+		IHttpService service = req.getHttpService();
+		byte[] reqBytes = req.getRequest();
+		IHttpRequestResponse res1 = callbacks.makeHttpRequest(service, reqBytes);
 		//sleep();
-		IHttpRequestResponse res2 = callbacks.makeHttpRequest(service, req);
+		IHttpRequestResponse res2 = callbacks.makeHttpRequest(service, reqBytes);
 		List<Diff> template = diff(new String(res1.getResponse()), new String(res2.getResponse()));
 		return template;
 	}

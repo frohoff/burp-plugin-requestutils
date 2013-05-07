@@ -17,6 +17,7 @@ import java.util.Set;
 import javax.swing.AbstractAction;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+import javax.swing.SwingUtilities;
 
 import org.frohoff.burp.plugin.requestutils.command.CurlRequestCommandConverter;
 import org.frohoff.burp.plugin.requestutils.command.RequestCommandConverter;
@@ -37,7 +38,7 @@ public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFact
 	private IBurpExtenderCallbacks callbacks = null;
 	
 	private Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-		
+			
 	public class ConvertRequestAction extends AbstractAction {
 		private static final long serialVersionUID = -1305935558053936713L;
 		private final IHttpRequestResponse[] https;
@@ -90,10 +91,15 @@ public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFact
 			items.add(new JMenuItem(new AbstractAction("Reduce Request") {				
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					System.out.println("reducing request");
-					IHttpService service = invocation.getSelectedMessages()[0].getHttpService();
-					byte[] req = DiffResponseUtils.getReducedRequest(callbacks, service, invocation.getSelectedMessages()[0].getRequest());
-					callbacks.sendToRepeater(service.getHost(), service.getPort(), service.getProtocol().equalsIgnoreCase("https"), req, "reduced request");
+					SwingUtilities.invokeLater(new Runnable(){
+						@Override
+						public void run() {
+							System.out.println("reducing request");
+							IHttpService service = invocation.getSelectedMessages()[0].getHttpService();
+							byte[] req = DiffResponseUtils.getReducedRequest(callbacks, invocation.getSelectedMessages()[0]);
+							callbacks.sendToRepeater(service.getHost(), service.getPort(), service.getProtocol().equalsIgnoreCase("https"), req, "reduced request");
+						}						
+					});
 				}
 			}));			
 		} 
