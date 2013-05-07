@@ -18,12 +18,18 @@ public class DiffUtils {
 		int i = 0;
 		while (i < diffs.size()) {
 			int left = diffs.size() - i;
-			if (left >= 1 && reduceSingle(diffs, i))
+			if (left >= 1 && reduceSingle(diffs, i)) {
+				i = Math.max(0, i - 3);
+				continue;				
+			}				
+			if (left >= 2 && reduceDouble(diffs, i)) {
+				i = Math.max(0, i - 3);
 				continue;
-			if (left >= 2 && reduceDouble(diffs, i))
+			}				
+			if (left >= 3 && reduceTriple(diffs, i)) {
+				i = Math.max(0, i - 3);
 				continue;
-			if (left >= 3 && reduceTriple(diffs, i))
-				continue;
+			}				
 			i++;
 		}	
 		return diffs;
@@ -56,23 +62,27 @@ public class DiffUtils {
 		if (a.operation == Operation.EQUAL && oppositeDiffOps(b,c)) { // E,C1,C2
 			int aLastSpace = StringUtils.lastIndexOf(a.text, WHITESPACE);
 			int bFirstSpace = StringUtils.firstIndexOf(b.text, WHITESPACE);
-			int cFirstSpace = StringUtils.firstIndexOf(c.text, WHITESPACE);			
-			if (aLastSpace != -1 && aLastSpace != a.text.length()-1 && bFirstSpace != 0 && cFirstSpace != 0) { // source has space and sinks aren't bounded by space
+			int cFirstSpace = StringUtils.firstIndexOf(c.text, WHITESPACE);	
+			aLastSpace = aLastSpace == -1 ? -1 : aLastSpace; 
+			if (aLastSpace != a.text.length()-1 && bFirstSpace != 0 && cFirstSpace != 0) { // source has space and sinks aren't bounded by space
 				String chunk = a.text.substring(aLastSpace+1);
 				a.text = a.text.substring(0, aLastSpace+1);
 				b.text = chunk + b.text;
 				c.text = chunk + c.text;
+				reduceSingle(diffs, i); // remove possibly empty text
 				return true;
 			}
 		} else if (oppositeDiffOps(a,b) && c.operation == Operation.EQUAL) { // C1,C2,E
 			int aLastSpace = StringUtils.lastIndexOf(a.text, WHITESPACE);
 			int bLastSpace = StringUtils.lastIndexOf(b.text, WHITESPACE);
-			int cFirstSpace = StringUtils.firstIndexOf(c.text, WHITESPACE);			
-			if (aLastSpace != a.text.length()-1 && bLastSpace != b.text.length()-1 && cFirstSpace != -1 && cFirstSpace != 0) {
+			int cFirstSpace = StringUtils.firstIndexOf(c.text, WHITESPACE);	
+			cFirstSpace = cFirstSpace == -1 ? c.text.length() : cFirstSpace;
+			if (aLastSpace != a.text.length()-1 && bLastSpace != b.text.length()-1 && cFirstSpace != 0) {
 				String chunk = c.text.substring(0, cFirstSpace);
 				a.text = a.text + chunk;
 				b.text = b.text + chunk;
 				c.text = c.text.substring(cFirstSpace);
+				reduceSingle(diffs, i+2); // remove possibly empty text				
 				return true;
 			}			
 		} else if (oppositeDiffOps(a,b) && oppositeDiffOps(b,c)) { // C1 C2 C1

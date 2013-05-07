@@ -94,11 +94,12 @@ public class ReduceRequestAction extends AbstractAction {
 
 	protected byte[] tryStrippedRequest(Pattern templPattern, IHttpService service, byte[] reqBytes
 										, String content, String delimRegex) {
+		System.out.println("trying to remove: " + content);
 		String reqStr = new String(reqBytes);
 		String newReqStr = reqStr.replaceAll(Pattern.quote(content) + "(" + delimRegex + ")?", ""); //strip header
 		byte[] newReq = newReqStr.getBytes(); 
 		IHttpRequestResponse newRes = callbacks.makeHttpRequest(service, newReq);
-		if (newRes.getResponse() != null && templPattern.matcher(new String(newRes.getResponse())).matches()) {
+		if (newRes.getResponse() != null && templPattern.matcher(new String(newRes.getResponse())).find()) {
 			reqBytes = newReq;					
 		}		
 		return reqBytes;
