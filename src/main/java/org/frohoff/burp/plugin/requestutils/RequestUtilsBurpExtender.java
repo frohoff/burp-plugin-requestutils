@@ -75,6 +75,7 @@ public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFact
 	public void registerExtenderCallbacks(IBurpExtenderCallbacks callbacks) {
 		this.callbacks = callbacks;
 		callbacks.registerContextMenuFactory(this);
+		callbacks.setExtensionName("Request-Utils");
 	}
 
 	@Override
