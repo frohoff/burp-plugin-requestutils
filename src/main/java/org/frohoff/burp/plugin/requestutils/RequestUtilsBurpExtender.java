@@ -15,7 +15,7 @@ import javax.swing.JMenuItem;
 
 import org.frohoff.burp.plugin.requestutils.command.CurlRequestCommandConverter;
 import org.frohoff.burp.plugin.requestutils.command.RequestCommandConverter;
-import org.frohoff.burp.plugin.requestutils.reduce.DiffResponseUtils;
+import org.frohoff.burp.plugin.requestutils.reduce.ReduceRequestAction;
 
 import burp.IBurpExtender;
 import burp.IBurpExtenderCallbacks;
@@ -53,7 +53,7 @@ public class RequestUtilsBurpExtender implements IBurpExtender, IContextMenuFact
 					}
 			}});
 			//TODO: handle/prevent multiple selected requests
-			items.add(new JMenuItem(new DiffResponseUtils("Reduce Request", callbacks, invocation.getSelectedMessages()[0])));			
+			items.add(new JMenuItem(new ReduceRequestAction("Reduce Request", callbacks, invocation.getSelectedMessages())));			
 		} 
 		return items;
 	}

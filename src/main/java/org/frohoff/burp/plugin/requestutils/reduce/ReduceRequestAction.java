@@ -16,54 +16,55 @@ import burp.IHttpRequestResponse;
 import burp.IHttpService;
 import burp.IRequestInfo;
 
-public class DiffResponseUtils extends AbstractAction {	
+public class ReduceRequestAction extends AbstractAction {	
 	private static final long serialVersionUID = 4561751876702401810L;
-
-	private static Executor executor = Executors.newFixedThreadPool(5);
+	private static final Executor executor = Executors.newFixedThreadPool(5);
 	
 	private final IBurpExtenderCallbacks callbacks;
-	private final IHttpRequestResponse req;
-	private final IHttpService service;
+	private final IHttpRequestResponse[] reqs;
 	
-	public DiffResponseUtils(String name, IBurpExtenderCallbacks callbacks, IHttpRequestResponse req) {
+	public ReduceRequestAction(String name, IBurpExtenderCallbacks callbacks, IHttpRequestResponse... reqs) {
 		super(name);
 		this.callbacks = callbacks;
-		this.req = req;
-		this.service = req.getHttpService();
+		this.reqs = reqs;		
 	}
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		executor.execute(new Runnable(){
-			@Override
-			public void run() {
-				System.out.println("reducing request");
-				final byte[] reqBytes = getReducedRequest();
-				final boolean reduced = Arrays.equals(req.getRequest(), reqBytes);
-				SwingUtilities.invokeLater(new Runnable(){
-					@Override
-					public void run() {
-						callbacks.sendToRepeater(service.getHost(), service.getPort()
-								, service.getProtocol().equalsIgnoreCase("https"), reqBytes, reduced ? "Reduced" : "Couldn't Reduce");
-					}						
-				});					
-			}
-		});
+		for (final IHttpRequestResponse req : reqs) {
+			final IHttpService service = req.getHttpService();
+			executor.execute(new Runnable(){
+				@Override
+				public void run() {
+					final byte[] reqBytes = getReducedRequest(req);
+					final boolean wasReduced = ! Arrays.equals(req.getRequest(), reqBytes);
+					SwingUtilities.invokeLater(new Runnable(){
+						@Override
+						public void run() {
+							callbacks.sendToRepeater(
+								service.getHost(), service.getPort(), service.getProtocol().equalsIgnoreCase("https")
+								, reqBytes, wasReduced ? "Reduced" : "Couldn't Reduce");
+						}						
+					});					
+				}
+			});			
+		}
 	}			
 	
-	protected byte[] getReducedRequest() {		
-		List<Diff> diffTemplate = createDiffTemplate();
+	protected byte[] getReducedRequest(IHttpRequestResponse req) {
+		IHttpService service = req.getHttpService();
+		List<Diff> diffTemplate = createDiffTemplate(req);
 		byte[] reqBytes = req.getRequest();
 		IRequestInfo reqInfo = callbacks.getHelpers().analyzeRequest(reqBytes);		
 		List<String> headers = reqInfo.getHeaders();
-		Pattern templatePattern = DiffUtils.diffTemplateToPattern(diffTemplate);
+		Pattern tmplPattern = DiffUtils.diffTemplateToPattern(diffTemplate);
 		if (reqInfo.getContentType() == IRequestInfo.CONTENT_TYPE_NONE 
 				|| reqInfo.getContentType() == IRequestInfo.CONTENT_TYPE_URL_ENCODED) {
 			byte[] body = Arrays.copyOfRange(reqBytes, reqInfo.getBodyOffset(), reqBytes.length);
 			String[] params = new String(body).split("&");
 			for (String param : params) {
-				reqBytes = tryStrippedRequest(templatePattern, reqBytes, param, "&");	
-			}			
+				reqBytes = tryStrippedRequest(tmplPattern, service, reqBytes, param, "&");	
+			}
 		}		
 		for (String header : headers) {
 			if (header.startsWith(reqInfo.getMethod())) { // METHOD/PATH line
@@ -73,7 +74,7 @@ public class DiffResponseUtils extends AbstractAction {
 				if (uriParts.length == 2) {
 					String[] params = uriParts[1].split("&");
 					for (String param : params) {
-						reqBytes = tryStrippedRequest(templatePattern, reqBytes, param, "&");	
+						reqBytes = tryStrippedRequest(tmplPattern, service, reqBytes, param, "&");	
 					}
 				}
 			} else if (header.startsWith("Cookie: ")) {
@@ -81,38 +82,39 @@ public class DiffResponseUtils extends AbstractAction {
 				if (pieces.length == 2) {
 					String[] cookies = pieces[1].split(";");
 					for (String cookie : cookies) {
-						reqBytes = tryStrippedRequest(templatePattern, reqBytes, cookie, "\\s*;\\s*");						
+						reqBytes = tryStrippedRequest(tmplPattern, service, reqBytes, cookie, "\\s*;\\s*");						
 					}					
 				}
 			} else {
-				reqBytes = tryStrippedRequest(templatePattern, reqBytes, header, "\r\n");
+				reqBytes = tryStrippedRequest(tmplPattern, service, reqBytes, header, "\r\n");
 			}
 		}
 		return reqBytes;
 	}
 
-	protected byte[] tryStrippedRequest(Pattern templatePattern, byte[] reqBytes, String content, String delimiterRegex) {
+	protected byte[] tryStrippedRequest(Pattern templPattern, IHttpService service, byte[] reqBytes
+										, String content, String delimRegex) {
 		String reqStr = new String(reqBytes);
-		String newReqStr = reqStr.replaceAll(Pattern.quote(content) + "(" + delimiterRegex + ")?", "");
-		byte[] newReq = newReqStr.getBytes(); //strip header
+		String newReqStr = reqStr.replaceAll(Pattern.quote(content) + "(" + delimRegex + ")?", ""); //strip header
+		byte[] newReq = newReqStr.getBytes(); 
 		IHttpRequestResponse newRes = callbacks.makeHttpRequest(service, newReq);
-		if (templatePattern.matcher(new String(newRes.getResponse())).find()) {
-			System.out.println("removing: '" + content + "'");
+		if (newRes.getResponse() != null && templPattern.matcher(new String(newRes.getResponse())).matches()) {
 			reqBytes = newReq;					
 		}		
 		return reqBytes;
 	}
 	
-	protected List<Diff> createDiffTemplate() {
+	protected List<Diff> createDiffTemplate(IHttpRequestResponse req) {
+		IHttpService service = req.getHttpService();
 		byte[] reqBytes = req.getRequest();
-		IHttpRequestResponse res1 = request(reqBytes);
+		IHttpRequestResponse res1 = request(service, reqBytes);
 		sleep(); // exaggerate differences due to timestamps in response
-		IHttpRequestResponse res2 = request(reqBytes);
+		IHttpRequestResponse res2 = request(service, reqBytes);
 		List<Diff> template = DiffUtils.diff(new String(res1.getResponse()), new String(res2.getResponse()));
 		return template;
 	}
 
-	protected IHttpRequestResponse request(byte[] reqBytes) {
+	protected IHttpRequestResponse request(IHttpService service, byte[] reqBytes) {
 		return callbacks.makeHttpRequest(service, reqBytes);
 	}
 
