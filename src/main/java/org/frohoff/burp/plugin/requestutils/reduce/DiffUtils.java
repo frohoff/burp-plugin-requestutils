@@ -10,11 +10,8 @@ import org.frohoff.burp.plugin.requestutils.StringUtils;
 public class DiffUtils {
 	private static final String WHITESPACE = " \t\n\r";	
 	
-	// TODO reimplement with ListIterator
+	// TODO reimplement with ListIterator for performance
 	public static List<Diff> reduceDiffs(List<Diff> diffs) {
-		// E, D, A => ED, EA
-		// D, A, E => DE, AE
-		// D, A, D, A => DD,AA
 		int i = 0;
 		while (i < diffs.size()) {
 			int left = diffs.size() - i;
@@ -25,8 +22,7 @@ public class DiffUtils {
 			if (left >= 3 && reduceTriple(diffs, i))
 				continue;
 			i++;
-		}
-		
+		}	
 		return diffs;
 	}
 	
