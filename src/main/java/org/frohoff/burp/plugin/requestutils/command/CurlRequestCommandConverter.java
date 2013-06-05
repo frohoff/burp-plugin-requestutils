@@ -18,7 +18,7 @@ public class CurlRequestCommandConverter implements RequestCommandConverter {
 		URL url = message.getUrl();
 		List<String> comm = new LinkedList<String>();
 		comm.add("curl");
-		comm.add(url.toString());
+		comm.add("'" + escapeQuotes(url.toString()) + "'");
 		if (!"GET".equals(req.getMethod()) && !"POST".equals(req.getMethod())) { // set method
 			comm.add("-X " + escapeQuotes(req.getMethod()));
 		}
