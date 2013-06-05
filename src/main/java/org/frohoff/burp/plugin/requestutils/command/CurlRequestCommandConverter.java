@@ -24,7 +24,19 @@ public class CurlRequestCommandConverter implements RequestCommandConverter {
 		}
 		for (String header : req.getHeaders()) { // add headers
 			System.out.println("Header: '" + header + "'");
-			if (! header.startsWith(req.getMethod()) && ! header.startsWith("Host:") && ! header.startsWith("Content-Length:")) {
+			// TODO: fallback to -H for weird cookie headers
+			if (header.startsWith("Cookie:")) {
+				String[] cookieParts = header.split("\\s*:\\s*", 2);
+				String[] cookies = cookieParts[1].split("\\s*;\\s*");
+				for (String cookie : cookies) {
+					comm.add("-b '" + escapeQuotes(cookie) + "'");
+				}
+			} else if (header.startsWith("Host:")) {
+				String[] hostParts = header.split("\\s*:\\s*", 2);
+				if (! hostParts[1].equals(message.getHttpService().getHost())) { // only add if different from host in URL
+					comm.add("-H '" + escapeQuotes(header) + "'");					
+				}
+			} else if (! header.startsWith(req.getMethod()) && ! header.startsWith("Content-Length:")) {
 				comm.add("-H '" + escapeQuotes(header) + "'");
 			}
 		}
@@ -33,7 +45,7 @@ public class CurlRequestCommandConverter implements RequestCommandConverter {
 			String body = new String(Arrays.copyOfRange(reqBytes, req.getBodyOffset(), reqBytes.length));			
 			comm.add("-d '" + escapeQuotes(body) + "'");
 		}
-		comm.add("--compress"); // automatically decrompress compressed encodings
+		comm.add("--compress"); // automatically decompress compressed responses
 		return StringUtils.join(comm, " ");
 	}
 
