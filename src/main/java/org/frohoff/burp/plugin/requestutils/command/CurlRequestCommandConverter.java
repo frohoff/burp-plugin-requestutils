@@ -20,33 +20,34 @@ public class CurlRequestCommandConverter implements RequestCommandConverter {
 		comm.add("curl");
 		comm.add("'" + escapeQuotes(url.toString()) + "'");
 		if (!"GET".equals(req.getMethod()) && !"POST".equals(req.getMethod())) { // set method
-			comm.add("-X " + escapeQuotes(req.getMethod()));
-		}
+			comm.add(formatFlag("-X", req.getMethod()));	
+		}		
 		for (String header : req.getHeaders()) { // add headers
 			System.out.println("Header: '" + header + "'");
 			// TODO: fallback to -H for weird cookie headers
 			if (header.startsWith("Cookie:")) {
 				String[] cookieParts = header.split("\\s*:\\s*", 2);
-				String[] cookies = cookieParts[1].split("\\s*;\\s*");
-				for (String cookie : cookies) {
-					comm.add("-b '" + escapeQuotes(cookie) + "'");
-				}
+				comm.add(formatFlag("-b", cookieParts[1]));
 			} else if (header.startsWith("Host:")) {
 				String[] hostParts = header.split("\\s*:\\s*", 2);
 				if (! hostParts[1].equals(message.getHttpService().getHost())) { // only add if different from host in URL
-					comm.add("-H '" + escapeQuotes(header) + "'");					
+					comm.add(formatFlag("-H", header));					
 				}
-			} else if (! header.startsWith(req.getMethod()) && ! header.startsWith("Content-Length:")) {
-				comm.add("-H '" + escapeQuotes(header) + "'");
+			} else if (! header.startsWith(req.getMethod()) && ! header.startsWith("Content-Length:")) {				
+				comm.add(formatFlag("-H", header));
 			}
 		}
 		if ("POST".equals(req.getMethod()) || "PUT".equals(req.getMethod())) { // add POST/PUT payload
 			byte[] reqBytes = message.getRequest();
 			String body = new String(Arrays.copyOfRange(reqBytes, req.getBodyOffset(), reqBytes.length));			
-			comm.add("-d '" + escapeQuotes(body) + "'");
+			comm.add(formatFlag("-d", body));
 		}
 		comm.add("--compress"); // automatically decompress compressed responses
 		return StringUtils.join(comm, " ");
+	}
+	
+	protected String formatFlag(String flag, String value) {
+		return flag + (value != null ? " '" + escapeQuotes(value) + "'" : "");
 	}
 
 	@Override
