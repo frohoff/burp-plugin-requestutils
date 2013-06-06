@@ -1,7 +1,7 @@
 burp-plugin-requestutils
 ========================
 
-Plugin for manipulating requests in PortSwigger Burp Suite Pro v1.5+
+A plugin for manipulating and converting HTTP requests in PortSwigger Burp Suite Pro v1.5+
 
 Current Features:
   * Convert request to equivalent code/command
@@ -11,7 +11,7 @@ Current Features:
 Planned Features:
   * Convert request to equivalent code/command
     * Wget
-    * java URL/URLConnection and/HttpClient
-    * ruby net/http
-    * python urllib2
-    
+    * Java HttpURLConnection
+    * .NET WebRequest
+    * Ruby net/http
+    * Python urllib2    
