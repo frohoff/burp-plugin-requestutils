@@ -15,3 +15,4 @@ Planned Features:
     * .NET WebRequest
     * Ruby net/http
     * Python urllib2    
+  * Make reduce request functionality suck less
