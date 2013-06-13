@@ -11,8 +11,9 @@ Current Features:
 Planned Features:
   * Convert request to equivalent code/command
     * Wget
+    * Powershell (Invoke-RestMethod/Invoke-WebRequest)
+    * .NET WebRequest 
     * Java HttpURLConnection
-    * .NET WebRequest
     * Ruby net/http
     * Python urllib2    
   * Make reduce request functionality suck less
